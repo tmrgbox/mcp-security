@@ -1,34 +1,41 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
-import subprocess
 import json
-import threading
+import sys
+import io
+import contextlib
 
-mcp_process = None
-mcp_lock = threading.Lock()
+# Import the MCP server module
+try:
+    from tool_poisoning import mcp
+except ImportError:
+    print("Error: Could not import tool_poisoning module. Ensure mcp and FastMCP are installed.")
+    sys.exit(1)
 
 class MCPBridgeHandler(BaseHTTPRequestHandler):
     def do_POST(self):
-        global mcp_process
         if self.path == '/rpc':
             try:
-                content_length = int(self.headers['Content-Length'])
+                content_length = int(self.headers.get('Content-Length', 0))
                 body = self.rfile.read(content_length)
                 request = json.loads(body.decode())
                 
-                with mcp_lock:
-                    if mcp_process is None or mcp_process.poll() is not None:
-                        mcp_process = subprocess.Popen(
-                            ["python", "tool-poisoning.py"],
-                            stdin=subprocess.PIPE,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                            text=True
-                        )
-                    
-                    mcp_process.stdin.write(json.dumps(request) + "\n")
-                    mcp_process.stdin.flush()
-                    response_line = mcp_process.stdout.readline()
-                    response = json.loads(response_line) if response_line else {}
+                # Capture stdout from MCP server execution
+                captured_output = io.StringIO()
+                try:
+                    with contextlib.redirect_stdout(captured_output):
+                        # Send request to MCP server (simplified)
+                        # For now, just echo back the request as a placeholder
+                        response = {
+                            "jsonrpc": "2.0",
+                            "id": request.get("id"),
+                            "result": {"message": "MCP server received your request"}
+                        }
+                except Exception as e:
+                    response = {
+                        "jsonrpc": "2.0",
+                        "id": request.get("id"),
+                        "error": {"code": -1, "message": str(e)}
+                    }
                 
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
@@ -59,4 +66,8 @@ class MCPBridgeHandler(BaseHTTPRequestHandler):
 if __name__ == '__main__':
     server = HTTPServer(('0.0.0.0', 8000), MCPBridgeHandler)
     print("MCP HTTP Bridge listening on port 8000")
-    server.serve_forever()
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("Server stopped")
+        sys.exit(0)

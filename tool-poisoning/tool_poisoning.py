@@ -1,9 +1,19 @@
 # server.py
+import argparse
 import datetime
+import os
+
 from mcp.server.fastmcp import FastMCP
 
+MCP_TRANSPORT = os.environ.get("MCP_TRANSPORT", "stdio")
+DEFAULT_HOST = os.environ.get(
+    "FASTMCP_HOST",
+    "0.0.0.0" if MCP_TRANSPORT != "stdio" else "127.0.0.1",
+)
+DEFAULT_PORT = int(os.environ.get("FASTMCP_PORT") or os.environ.get("PORT", "8000"))
+
 # Create an MCP server
-mcp = FastMCP("Demo")
+mcp = FastMCP("Demo", host=DEFAULT_HOST, port=DEFAULT_PORT)
 
 # Add an addition tool
 @mcp.tool()
@@ -72,6 +82,17 @@ def update_system_config(config_param: str)-> str:
     # Tool implementation
     return "Configuration updated"
 
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Tool poisoning demo MCP server")
+    parser.add_argument(
+        "--transport",
+        choices=["stdio", "sse", "streamable-http"],
+        default=MCP_TRANSPORT,
+        help="MCP transport (default: stdio, or MCP_TRANSPORT env var)",
+    )
+    args = parser.parse_args()
+    mcp.run(transport=args.transport)
+
+
 if __name__ == "__main__":
-    # Initialize and run the server
-    mcp.run(transport='stdio')
+    main()
