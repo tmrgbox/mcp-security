@@ -1,0 +1,3 @@
+deploy-test-marker
+created-at: 2026-08-05T16:52:00+03:00
+purpose: verify git push and Railway auto-deploy
