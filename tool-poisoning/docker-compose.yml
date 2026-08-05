@@ -1,0 +1,11 @@
+services:
+  tool-poisoning:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      MCP_TRANSPORT: streamable-http
+      FASTMCP_HOST: 0.0.0.0
+      FASTMCP_PORT: 8000
+    volumes:
+      - ./testlog.log:/app/testlog.log
