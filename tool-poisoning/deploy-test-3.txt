@@ -1,0 +1,3 @@
+deploy-test-marker-3
+created-at: 2026-08-13T17:45:00+03:00
+purpose: third Railway auto-deploy verification
